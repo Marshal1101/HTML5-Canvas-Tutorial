@@ -1,9 +1,10 @@
 import {Ripple} from './ripple.js';
 import {Dot} from './dot.js';
-import {collide} from './utils.js';
+import {collide, getBWValue} from './utils.js';
 
 class App {
 	constructor() {
+		this.isColor = true;	// flag: COLOR true <-> BW false
 		this.canvas = document.createElement('canvas');
 		document.body.appendChild(this.canvas);
 		this.ctx = this.canvas.getContext('2d');
@@ -18,8 +19,8 @@ class App {
 		window.addEventListener('resize', this.resize.bind(this), false)
 		this.resize();
 
-		this.radius = 10;
-		this.pixelSize = 30;
+		this.radius = this.isColor ? 10 : 16;
+		this.pixelSize = this.isColor ? 30 : 16;
 		this.dots = [];
 
 		this.isLoaded = false;
@@ -89,14 +90,16 @@ class App {
 			);
 		}
 
-		this.ctx.drawImage(
-			this.image,
-			0, 0,
-			this.image.width, this.image.height,
-			this.imgPos.x, this.imgPos.y,
-			this.imgPos.width, this.imgPos.height,
-		);
-
+		if (this.isColor) {
+			this.ctx.drawImage(
+				this.image,
+				0, 0,
+				this.image.width, this.image.height,
+				this.imgPos.x, this.imgPos.y,
+				this.imgPos.width, this.imgPos.height,
+			);
+		}
+		
 		this.tmpCtx.drawImage(
 			this.image,
 			0, 0,
@@ -129,14 +132,24 @@ class App {
 				const green = this.imgData.data[pixelInex + 1];
 				const blue = this.imgData.data[pixelInex + 2];
 
+				const scale = getBWValue(red, green, blue, false);
+
 				const dot = new Dot(
 					x, y,
 					this.radius,
 					this.pixelSize,
 					red, green, blue,
+					scale, this.isColor
 				);
 
-				this.dots.push(dot);
+				if (!this.isColor) {
+					if (dot.targetRadius > 0.1) {
+						this.dots.push(dot);
+					}
+				}
+				else {
+					this.dots.push(dot);
+				}
 			}
 
 		}
@@ -145,6 +158,9 @@ class App {
 	animate() {
 		window.requestAnimationFrame(this.animate.bind(this));
 
+		if (!this.isColor) {
+			this.ctx.clearRect(0, 0, this.stageWidth, this.stageHeight);
+		}
 		this.ripple.animate();
 
 		for (let i = 0; i < this.dots.length; i++) {
@@ -167,13 +183,15 @@ class App {
 			this.dots[i].reset();
 		}
 
-		this.ctx.drawImage(
-			this.image,
-			0, 0,
-			this.image.width, this.image.height,
-			this.imgPos.x, this.imgPos.y,
-			this.imgPos.width, this.imgPos.height,
-		);
+		if (this.isColor) {
+			this.ctx.drawImage(
+				this.image,
+				0, 0,
+				this.image.width, this.image.height,
+				this.imgPos.x, this.imgPos.y,
+				this.imgPos.width, this.imgPos.height,
+			);
+		}
 
 		this.ripple.start(e.offsetX, e.offsetY);
 	}
